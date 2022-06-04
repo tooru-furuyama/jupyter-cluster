@@ -1,11 +1,11 @@
-# jupyter-cluster
+# Jupyter-Cluster
 ## Warning
 This project is Work-in-Progress status and not all features are functional
 
 ## Procedures
 Pre-requisite: Docker Compose
 1. Clone this repository
-2. Clone [Jupyter Container](../../../jupyter-container) repository as jupyter
+2. Clone [Jupyter Container](../../../jupyter-container) repository as jupyter<br>
    Example
    ```
    git clone https://github.com/tooru-furuyama/jupyter-container.git jupyter
