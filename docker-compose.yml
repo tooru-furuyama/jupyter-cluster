@@ -1,0 +1,141 @@
+version: "3.9"
+
+services:
+  traefik:
+    container_name: 'traefik'
+    image: traefik:latest
+    restart: unless-stopped
+    command:
+      - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--entrypoints.traefik.address=:8080"
+      - "--entrypoints.gitea-web.address=:3000"
+      - "--entrypoints.gitea-ssh.address=:3022"
+      - "--entrypoints.jupyter.address=:8000"
+      - "--entrypoints.openldap-tcp1.address=:389/tcp"
+      - "--entrypoints.openldap-tcp2.address=:636/tcp"
+      - "--entrypoints.ldapadmin.address=:80"
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.entryPoints=traefik"
+      - "traefik.http.routers.api.rule=PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
+      - "traefik.http.routers.api.service=api@internal"
+      - "traefik.http.routers.api.middlewares=api-auth"
+      - "traefik.http.middlewares.api-auth.basicauth.users=test:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/"
+    ports:
+      - "8080:8080"
+      - "3000:3000"
+      - "3022:3022"
+      - "9080:80"
+      - "9389:389"
+      - "9636:636"
+      - "8000:8000"
+  
+  gitea:
+    image: "gitea/gitea:latest"
+    container_name: "gitea"
+    restart: unless-stopped
+    environment:
+      - USER_UID=1001
+      - USER_GID=1001
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/etc/timezone:/etc/timezone:ro"
+      - "/etc/localtime:/etc/localtime:ro"
+      - "./gitea/data:/data"
+      - "./shared/etc/ssl/private/cert.pem:/etc/ssl/private/cert.pem:ro"
+      - "./shared/etc/ssl/private/key.pem:/etc/ssl/private/key.pem:ro"
+      - "./shared/home:/home"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gitea-web.rule=Host(`apps.example.local`)"
+      - "traefik.http.routers.gitea-web.entrypoints=gitea-web"
+      - "traefik.http.routers.gitea-web.service=gitea-web-svc"
+      - "traefik.http.services.gitea-web-svc.loadbalancer.server.port=3000"
+      - "traefik.tcp.routers.gitea-ssh.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.gitea-ssh.entrypoints=gitea-ssh"
+      - "traefik.tcp.routers.gitea-ssh.service=gitea-ssh-svc"
+      - "traefik.tcp.services.gitea-ssh-svc.loadbalancer.server.port=3022"
+
+  jupyter:
+    build:
+      context: ./jupyter
+      dockerfile: dockerfile
+    container_name: "jupyter"
+    restart: unless-stopped
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./jupyter:/opt/jupyterhub/etc/jupyter"
+      - "./shared/etc/ssl/private/cert.pem:/etc/ssl/private/cert.pem:ro"
+      - "./shared/etc/ssl/private/key.pem:/etc/ssl/private/key.pem:ro"
+      - "./shared/home:/home"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=apps_default"
+      - "traefik.http.routers.jupyter.rule=Host(`apps.example.local`)"
+      - "traefik.http.routers.jupyter.entrypoints=jupyter"
+
+  openldap:
+    image: "osixia/openldap:latest"
+    container_name: "openldap"
+    environment:
+      LDAP_LOG_LEVEL: "256"
+      LDAP_ORGANISATION: "aegis"
+      LDAP_DOMAIN: "apps.example.local"
+      LDAP_BASE_DN: ""
+      LDAP_ADMIN_PASSWORD: "admin"
+      LDAP_CONFIG_PASSWORD: "config"
+      LDAP_READONLY_USER: "false"
+      LDAP_READONLY_USER_USERNAME: "readonly"
+      LDAP_READONLY_USER_PASSWORD: "readonly"
+      LDAP_RFC2307BIS_SCHEMA: "false"
+      LDAP_BACKEND: "mdb"
+      LDAP_TLS: "true"
+      LDAP_TLS_CRT_FILENAME: "ldap.crt"
+      LDAP_TLS_KEY_FILENAME: "ldap.key"
+      LDAP_TLS_CA_CRT_FILENAME: "ca.crt"
+      LDAP_TLS_ENFORCE: "false"
+      LDAP_TLS_CIPHER_SUITE: "SECURE256:-VERS-SSL3.0"
+      LDAP_TLS_PROTOCOL_MIN: "3.1"
+      LDAP_TLS_VERIFY_CLIENT: "demand"
+      LDAP_REPLICATION: "false"
+      #LDAP_REPLICATION_CONFIG_SYNCPROV: "binddn="cn=admin,cn=config" bindmethod=simple credentials=$LDAP_CONFIG_PASSWORD searchbase="cn=config" type=refreshAndPersist retry="60 +" timeout=1 starttls=critical"
+      #LDAP_REPLICATION_DB_SYNCPROV: "binddn="cn=admin,$LDAP_BASE_DN" bindmethod=simple credentials=$LDAP_ADMIN_PASSWORD searchbase="$LDAP_BASE_DN" type=refreshAndPersist interval=00:00:00:10 retry="60 +" timeout=1 starttls=critical"
+      #docker-compose.ymlLDAP_REPLICATION_HOSTS: "#PYTHON2BASH:['ldap://ldap.example.org','ldap://ldap2.example.org']"
+      KEEP_EXISTING_CONFIG: "false"
+      LDAP_REMOVE_CONFIG_AFTER_SETUP: "true"
+      LDAP_SSL_HELPER_PREFIX: "ldap"
+    tty: true
+    stdin_open: true
+    volumes:
+      - "./openldap/ldap:/var/lib/ldap"
+      - "./openldap/slapd.d:/etc/ldap/slapd.d"
+      - "./openldap/ldifs:/container/service/slapd/assets/custome"
+      - "./shared/etc/ssl/private:/container/service/slapd/assets/certs/"
+    domainname: "apps.example.local"
+    hostname: "apps.example.local"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.tcp.routers.openldap-tcp1.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.openldap-tcp1.entrypoints=openldap-tcp1"
+      - "traefik.tcp.routers.openldap-tcp2.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.openldap-tcp2.entrypoints=openldap-tcp2"
+
+  phpldapadmin:
+    image: "osixia/phpldapadmin:latest"
+    container_name: "phpldapadmin"
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: "openldap"
+      PHPLDAPADMIN_HTTPS: "false"
+    depends_on:
+      - "openldap"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ldapadmin.rule=Host(`apps.example.local`)"
+      - "traefik.http.routers.ldapadmin.entrypoints=ldapadmin"
+
