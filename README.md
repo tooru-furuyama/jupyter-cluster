@@ -11,7 +11,13 @@ Pre-requisite: Docker Compose
    git clone https://github.com/tooru-furuyama/jupyter-container.git
    cp jupyter-container/jupyter .
    ```
-3. Launch Docker Compose
+3. Update domain name from example domain name to the appropriate domain name<br>
+   Example
+   ```
+   sed -i -e "s/{domain-name}/apps.example.local/g" docker-compose.yml
+   sed -i -e "s/{domain-name}/apps.example.local/g" gitea/data/gitea/conf/app.ini
+   ```
+4. Launch Docker Compose
    ```
    docker compose up -d
    ```
