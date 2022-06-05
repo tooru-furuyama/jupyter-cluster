@@ -1,0 +1,14 @@
+tls:
+  options:
+    - default:
+      minVersion: VersionTLS12
+  certificates:
+    - certFile: "../shared/etc/ssl/private/cert.pem"
+      keyFile: "../shared/etc/ssl/private/key.pem"
+      stores:
+        - default
+  stores:
+    default:
+      defaultCertificate:
+        certFile: "../shared/etc/ssl/private/cert.pem"
+        keyFile: "../shared/etc/ssl/private/key.pem"

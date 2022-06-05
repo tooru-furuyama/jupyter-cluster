@@ -23,6 +23,5 @@ Pre-requisite: Docker Compose
    ```
 
 # To Do
-* HTTPS Support
 * LDAP integration
   Note: Currently Jupyter, Gitea and OpenLDAP are just running in the same network and LDAP authentication is NOT integrated yet.
