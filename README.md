@@ -14,8 +14,8 @@ Pre-requisite: Docker Compose
 3. Update domain name from example domain name to the appropriate domain name<br>
    Example
    ```
-   sed -i -e "s/{domain-name}/apps.example.local/g" docker-compose.yml
-   sed -i -e "s/{domain-name}/apps.example.local/g" gitea/data/gitea/conf/app.ini
+   sed -i -e "s/apps.example.local/{domain-name}/g" docker-compose.yml
+   sed -i -e "s/apps.example.local/{domain-name}/g" gitea/data/gitea/conf/app.ini
    ```
 4. Launch Docker Compose
    ```
