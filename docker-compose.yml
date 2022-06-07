@@ -37,10 +37,10 @@ services:
       - "8080:8080"
       - "3000:3000"
       - "3022:3022"
+      - "8000:8000"
       - "9080:80"
       - "389:389"
       - "636:636"
-      - "8000:8000"
   
   gitea:
     image: "gitea/gitea:latest"
@@ -91,7 +91,7 @@ services:
     container_name: "openldap"
     environment:
       LDAP_LOG_LEVEL: "256"
-      LDAP_ORGANISATION: "aegis"
+      LDAP_ORGANISATION: "example"
       LDAP_DOMAIN: "apps.example.local"
       LDAP_BASE_DN: ""
       LDAP_ADMIN_PASSWORD: "admin"
